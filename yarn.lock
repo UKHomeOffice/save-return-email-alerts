@@ -1376,6 +1376,15 @@ mkdirp@^0.5.1:
   dependencies:
     minimist "^1.2.5"
 
+modern-slavery-schema@^1.6.0-submitted-at-beta.1:
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/modern-slavery-schema/-/modern-slavery-schema-1.6.0.tgz#3d7956d09d3ce6310fe9c19ebb419da36d4f6f8d"
+  integrity sha512-WJDGNcDooTYiEO8o73ASCNFAkjbjp6TdfCJi+GOlMqnbE42oVAeKaUHnTD6sPi1FiMONA5cCMRioWC87naCzlw==
+  dependencies:
+    knex "^0.95.11"
+    knex-migrate "^1.7.4"
+    pg "^8.7.1"
+
 moment-timezone@^0.5.31:
   version "0.5.33"
   resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.5.33.tgz#b252fd6bb57f341c9b59a5ab61a8e51a73bbd22c"
@@ -1392,15 +1401,6 @@ moment@^2.29.2:
   version "2.29.2"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.2.tgz#00910c60b20843bcba52d37d58c628b47b1f20e4"
   integrity sha512-UgzG4rvxYpN15jgCmVJwac49h9ly9NurikMWGPdVxm8GZD6XjkKPxDTjQQ43gtGgnV3X0cAyWDdP2Wexoquifg==
-
-ms-schema@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/ms-schema/-/ms-schema-1.2.0.tgz#3dd6c192d51d8d388465ab61c81aa68e418af284"
-  integrity sha512-uxaprd2p8GNJTYI9nJMylA9cTUyBg8uaPdlEqO/gX6J7hP7QlnmN95NFegtg0XrNkDTC8Cfc9YZhso/43PvTyA==
-  dependencies:
-    knex "^0.95.11"
-    knex-migrate "^1.7.4"
-    pg "^8.7.1"
 
 ms@2.0.0:
   version "2.0.0"
