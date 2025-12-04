@@ -1376,22 +1376,22 @@ mkdirp@^0.5.1:
   dependencies:
     minimist "^1.2.5"
 
-moment-timezone@^0.5.31:
-  version "0.5.33"
-  resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.5.33.tgz#b252fd6bb57f341c9b59a5ab61a8e51a73bbd22c"
-  integrity sha512-PTc2vcT8K9J5/9rDEPe5czSIKgLoGsH8UNpA4qZTVw0Vd/Uz19geE9abbIOQKaAQFcnQ3v5YEXrbSc5BpshH+w==
+moment-timezone@^0.5.43:
+  version "0.5.45"
+  resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.5.45.tgz#cb685acd56bac10e69d93c536366eb65aa6bcf5c"
+  integrity sha512-HIWmqA86KcmCAhnMAN0wuDOARV/525R2+lOLotuGFzn4HO+FH+/645z2wx0Dt3iDv6/p61SIvKnDstISainhLQ==
   dependencies:
-    moment ">= 2.9.0"
-
-"moment@>= 2.9.0":
-  version "2.29.1"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.1.tgz#b2be769fa31940be9eeea6469c075e35006fa3d3"
-  integrity sha512-kHmoybcPV8Sqy59DwNDY3Jefr64lK/by/da0ViFcuA4DH0vQg5Q6Ze5VimxkfQNSC+Mls/Kx53s7TjP1RhFEDQ==
+    moment "^2.29.4"
 
 moment@^2.29.2:
   version "2.29.2"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.2.tgz#00910c60b20843bcba52d37d58c628b47b1f20e4"
   integrity sha512-UgzG4rvxYpN15jgCmVJwac49h9ly9NurikMWGPdVxm8GZD6XjkKPxDTjQQ43gtGgnV3X0cAyWDdP2Wexoquifg==
+
+moment@^2.29.4:
+  version "2.30.1"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.30.1.tgz#f8c91c07b7a786e30c59926df530b4eac96974ae"
+  integrity sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==
 
 ms-schema@^1.2.0:
   version "1.2.0"
@@ -1422,12 +1422,12 @@ natural-compare@^1.4.0:
   resolved "https://registry.yarnpkg.com/natural-compare/-/natural-compare-1.4.0.tgz#4abebfeed7541f2c27acfb29bdbbd15c8d5ba4f7"
   integrity sha1-Sr6/7tdUHywnrPspvbvRXI1bpPc=
 
-node-json-logger@0.0.11:
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/node-json-logger/-/node-json-logger-0.0.11.tgz#5704cc9c80c7cb127e314915869eff001902f2e2"
-  integrity sha512-9HMqg1umRvCzJiiJ308qvWp6LBniPnZnMqfCG2j4UpBEt/hmWMVGliOOaQOQ2C0swlmFOTZiDqLUxRGVeAVv6Q==
+node-json-logger@0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/node-json-logger/-/node-json-logger-0.2.1.tgz#afe87d79ca8bbc545e07e8e08713ec03c5ae6192"
+  integrity sha512-XY8zqO5f+RX9FTRiLIWQA8tiGEb2Ltudbks2kBno0HTR+Ikb3Z7LinjQprzBzQEcHiZaclqK5ahpgyVKeXHecQ==
   dependencies:
-    moment-timezone "^0.5.31"
+    moment-timezone "^0.5.43"
 
 normalize-package-data@^2.3.2:
   version "2.5.0"
