@@ -15,7 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "knex": "^0.95.11",
-    "moment": "^2.29.2",
+    "moment": "^2.30.1",
     "ms-schema": "^1.2.0",
     "node-json-logger": "0.0.11",
     "notifications-node-client": "^5.1.1"
