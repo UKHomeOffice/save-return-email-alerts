@@ -18,7 +18,7 @@
     "moment": "^2.29.2",
     "ms-schema": "^1.2.0",
     "node-json-logger": "0.0.11",
-    "notifications-node-client": "^5.1.1"
+    "notifications-node-client": "^5.2.3"
   },
   "devDependencies": {
     "eslint": "^7.32.0",
