@@ -14,7 +14,7 @@
   "author": "Sulthan Ahmed & Alex Swann",
   "license": "MIT",
   "dependencies": {
-    "knex": "^0.95.11",
+    "knex": "^0.95.15",
     "moment": "^2.29.2",
     "ms-schema": "^1.2.0",
     "node-json-logger": "0.0.11",
