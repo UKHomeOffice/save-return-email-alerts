@@ -28,7 +28,7 @@ steps:
 
   - name: setup
     pull: if-not-exists
-    image: node:14
+    image: node:24
     commands:
       - yarn install --frozen-lockfile
     when:
@@ -37,7 +37,7 @@ steps:
 
   - name: linting
     pull: if-not-exists
-    image: node:14
+    image: node:24
     commands:
       - yarn run test:lint
     when:
@@ -73,7 +73,7 @@ steps:
   # Snyk & Anchore security scans which run after branch deployment to prevent blocking of PR UAT tests
   - name: snyk_scan
     pull: if-not-exists
-    image: node:14
+    image: node:24
     environment:
       SNYK_TOKEN:
         from_secret: snyk_token
@@ -122,7 +122,7 @@ steps:
 
   - name: cron_snyk_scan
     pull: if-not-exists
-    image: node:14
+    image: node:24
     environment:
       SNYK_TOKEN:
         from_secret: snyk_token

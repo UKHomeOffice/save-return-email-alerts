@@ -2,10 +2,6 @@
 version: v1.22.1
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 ignore:
-  SNYK-JS-MINIMIST-2429795:
-    - '* > minimist@1.2.5':
-        reason: No direct upgrade
-        expires: '2022-05-21T17:02:21.865Z'
   SNYK-JS-MOMENT-2440688: 
     - node-json-logger@0.0.11 > moment-timezone@0.5.33 > moment@2.29.1:
         reason: No direct upgrade
