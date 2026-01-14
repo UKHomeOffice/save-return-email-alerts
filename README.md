@@ -71,4 +71,4 @@ With the server running you can run the main app with save and return lookup UI 
 See details of how to do this in [modern slavery](https://github.com/UKHomeOffice/modern-slavery) application
 
 ## Security scanning
-Security scanning happens weekly using Snyk and Anchore. These also run on pull requests.
+Security scanning happens weekly using Snyk. This snyk scan also run on pull requests.
