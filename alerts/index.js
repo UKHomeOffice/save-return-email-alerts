@@ -51,7 +51,6 @@ const processAlerts = async () => {
   isAlertJobRunning = true;
   try {
     const reports = await db.select(selectableProps).from(tableName);
-    const promises = [];
 
     for (const report of reports) {
       try {
@@ -66,55 +65,60 @@ const processAlerts = async () => {
         // alert about newly saved case
         if (report.session.alertUser === true) {
           logger.info('New save and return', { id: report.id });
-          promises.push(
-            sendNotifyEmail(SAVE_REPORT_TEMPLATE, email, personalisation)
-              .catch(e => logger.error('Email error', { id: report.id, error: e }))
-          );
+          try {
+            await sendNotifyEmail(SAVE_REPORT_TEMPLATE, email, personalisation);
+          } catch (emailError) {
+            logger.error('Email error', { id: report.id, error: emailError });
+          }
         } else if (!report.session.hasOwnProperty('alertUser') &&
           moment().diff(report.updated_at, 'seconds') > NRM_FORM_SESSION_TIMEOUT) {
           // check for expired sessions (they wont have an alertUser key but will be over an hour old)
           logger.info('Session expired for user', { id: report.id });
-          promises.push(
-            sendNotifyEmail(TIMEOUT_TEMPLATE, email, personalisation)
-              .catch(e => logger.error('Email error', { id: report.id, error: e }))
-          );
+          try {
+            await sendNotifyEmail(TIMEOUT_TEMPLATE, email, personalisation);
+          } catch (emailError) {
+            logger.error('Email error', { id: report.id, error: emailError });
+          }
         } else if (moment().diff(updated, 'days') > DELETION_TIMEOUT) {
           // report is deleted
           logger.info('Deleted old report', { id: report.id });
-          promises.push(
-            sendNotifyEmail(DELETE_TEMPLATE, email, personalisation)
-              .catch(e => logger.error('Email error', { id: report.id, error: e }))
-          );
-          promises.push(
-            db(tableName).where({ id: report.id }).del()
-              .catch(e => logger.error('DB delete error', { id: report.id, error: e }))
-          );
+          try {
+            await sendNotifyEmail(DELETE_TEMPLATE, email, personalisation);
+          } catch (emailError) {
+            logger.error('Email error', { id: report.id, error: emailError });
+          }
+          try {
+            await db(tableName).where({ id: report.id }).del();
+          } catch (dbError) {
+            logger.error('DB delete error', { id: report.id, error: dbError });
+          }
           continue;
         } else if (!report.session.hasOwnProperty('firstAlert') &&
           moment().diff(updated, 'days') >= FIRST_ALERT_TIMEOUT) {
           // report is coming up for deletion
           logger.info(`${FIRST_ALERT_TIMEOUT} day warning for report`, { id: report.id });
-          promises.push(
-            sendNotifyEmail(SOON_TO_BE_DELETED_TEMPLATE, email, personalisation)
-              .catch(e => logger.error('Email error', { id: report.id, error: e }))
-          );
+          try {
+            await sendNotifyEmail(SOON_TO_BE_DELETED_TEMPLATE, email, personalisation);
+          } catch (emailError) {
+            logger.error('Email error', { id: report.id, error: emailError });
+          }
           report.session.firstAlert = true;
         } else {
           continue;
         }
 
         report.session.alertUser = false;
-        promises.push(
-          db(tableName).where({ id: report.id }).update({ session: report.session })
-            .catch(e => logger.error('DB update error', { id: report.id, error: e }))
-        );
-      } catch (innerErr) {
-        logger.error('Error processing report', { id: report.id, error: innerErr });
+        try {
+          await db(tableName).where({ id: report.id }).update({ session: report.session });
+        } catch (dbError) {
+          logger.error('DB update error', { id: report.id, error: dbError });
+        }
+      } catch (innerError) {
+        logger.error('Error processing report', { id: report.id, error: innerError });
       }
     }
-    await Promise.all(promises);
-  } catch (err) {
-    logger.error('Error in alert job', err);
+  } catch (error) {
+    logger.error('Error in alert job', error);
   } finally {
     isAlertJobRunning = false;
   }
