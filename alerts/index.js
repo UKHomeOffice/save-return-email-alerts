@@ -6,7 +6,8 @@ const config = require('../config');
 const knexfile = require(`${config.migrationsRepo}`);
 const knexfileConfig = knexfile[process.env.NODE_ENV ? 'production' : 'development'];
 const tableName = config.tableName;
-const knex = require('knex')(knexfileConfig);
+const { knex } = require('knex');
+const db = knex(knexfileConfig);
 const moment = require('moment');
 
 const selectableProps = [
@@ -30,6 +31,7 @@ const URL = process.env.APP_URL;
 const NRM_FORM_SESSION_TIMEOUT = process.env.SESSION_TTL || 3600;
 const FIRST_ALERT_TIMEOUT = process.env.FIRST_ALERT_TIMEOUT || 21;
 const DELETION_TIMEOUT = process.env.DELETION_TIMEOUT || 28;
+const ALERT_JOB_INTERVAL = 12000;
 
 const sendNotifyEmail = (template, email, content) => {
   return notifyClient.sendEmail(template, email, {
@@ -37,13 +39,22 @@ const sendNotifyEmail = (template, email, content) => {
   });
 };
 
-setInterval(() => {
-  knex.select(selectableProps)
-    .from(tableName)
-    .then(reports => {
-      const promises = [];
 
-      reports.forEach(report => {
+let isAlertJobRunning = false;
+
+
+const processAlerts = async () => {
+  if (isAlertJobRunning) {
+    logger.warn('Previous job still running, skipping this interval');
+    return;
+  }
+  isAlertJobRunning = true;
+  try {
+    const reports = await db.select(selectableProps).from(tableName);
+    const promises = [];
+
+    for (const report of reports) {
+      try {
         const email = report.session['user-email'];
         const updated = moment(report.updated_at).startOf('day');
         const personalisation = {
@@ -54,41 +65,76 @@ setInterval(() => {
 
         // alert about newly saved case
         if (report.session.alertUser === true) {
-          logger.info('New save and return', {id: report.id});
-
-          promises.push(sendNotifyEmail(SAVE_REPORT_TEMPLATE, email, personalisation));
+          logger.info('New save and return', { id: report.id });
+          promises.push(
+            sendNotifyEmail(SAVE_REPORT_TEMPLATE, email, personalisation)
+              .catch(e => logger.error('Email error', { id: report.id, error: e }))
+          );
         } else if (!report.session.hasOwnProperty('alertUser') &&
-        moment().diff(report.updated_at, 'seconds') > NRM_FORM_SESSION_TIMEOUT) {
-        // check for expired sessions (they wont have an alertUser key but will be over an hour old)
-          logger.info('Session expired for user', {id: report.id});
-
-          promises.push(sendNotifyEmail(TIMEOUT_TEMPLATE, email, personalisation));
+          moment().diff(report.updated_at, 'seconds') > NRM_FORM_SESSION_TIMEOUT) {
+          // check for expired sessions (they wont have an alertUser key but will be over an hour old)
+          logger.info('Session expired for user', { id: report.id });
+          promises.push(
+            sendNotifyEmail(TIMEOUT_TEMPLATE, email, personalisation)
+              .catch(e => logger.error('Email error', { id: report.id, error: e }))
+          );
         } else if (moment().diff(updated, 'days') > DELETION_TIMEOUT) {
-        // report is deleted
-          logger.info('Deleted old report', {id: report.id});
-
-          promises.push(sendNotifyEmail(DELETE_TEMPLATE, email, personalisation));
-          promises.push(knex(tableName).where({id: report.id}).del());
-          return;
+          // report is deleted
+          logger.info('Deleted old report', { id: report.id });
+          promises.push(
+            sendNotifyEmail(DELETE_TEMPLATE, email, personalisation)
+              .catch(e => logger.error('Email error', { id: report.id, error: e }))
+          );
+          promises.push(
+            db(tableName).where({ id: report.id }).del()
+              .catch(e => logger.error('DB delete error', { id: report.id, error: e }))
+          );
+          continue;
         } else if (!report.session.hasOwnProperty('firstAlert') &&
-        moment().diff(updated, 'days') >= FIRST_ALERT_TIMEOUT) {
-        // report is coming up for deletion
-          logger.info(`${FIRST_ALERT_TIMEOUT} day warning for report`, {id: report.id});
-
-          promises.push(sendNotifyEmail(SOON_TO_BE_DELETED_TEMPLATE, email, personalisation));
+          moment().diff(updated, 'days') >= FIRST_ALERT_TIMEOUT) {
+          // report is coming up for deletion
+          logger.info(`${FIRST_ALERT_TIMEOUT} day warning for report`, { id: report.id });
+          promises.push(
+            sendNotifyEmail(SOON_TO_BE_DELETED_TEMPLATE, email, personalisation)
+              .catch(e => logger.error('Email error', { id: report.id, error: e }))
+          );
           report.session.firstAlert = true;
         } else {
-          return;
+          continue;
         }
 
         report.session.alertUser = false;
+        promises.push(
+          db(tableName).where({ id: report.id }).update({ session: report.session })
+            .catch(e => logger.error('DB update error', { id: report.id, error: e }))
+        );
+      } catch (innerErr) {
+        logger.error('Error processing report', { id: report.id, error: innerErr });
+      }
+    }
+    await Promise.all(promises);
+  } catch (err) {
+    logger.error('Error in alert job', err);
+  } finally {
+    isAlertJobRunning = false;
+  }
+};
 
-        promises.push(knex(tableName).where({
-          id: report.id
-        })
-          .update({session: report.session}));
-      });
+// Global handler for unhandled promise rejections
+process.on('unhandledRejection', reason => {
+  logger.error('Unhandled Rejection:', reason);
+});
 
-      return Promise.all(promises);
-    });
-}, 12000);
+setInterval(processAlerts, ALERT_JOB_INTERVAL);
+
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully...');
+  await db.destroy();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully...');
+  await db.destroy();
+  process.exit(0);
+});
