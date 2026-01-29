@@ -50,7 +50,11 @@ const processAlerts = async () => {
   }
   isAlertJobRunning = true;
   try {
+    logger.info('Starting to fetch reports');
+    const start = Date.now();
     const reports = await db.select(selectableProps).from(tableName);
+    logger.info('Query duration', { duration: Date.now() - start });
+    logger.info('Fetched reports', { count: reports.length });
 
     for (const report of reports) {
       try {
@@ -88,7 +92,9 @@ const processAlerts = async () => {
             logger.error('Email error', { id: report.id, error: emailError });
           }
           try {
+            logger.info('Deleting report from DB', { id: report.id });
             await db(tableName).where({ id: report.id }).del();
+            logger.info('Report deleted from DB', { id: report.id });
           } catch (dbError) {
             logger.error('DB delete error', { id: report.id, error: dbError });
           }
@@ -106,10 +112,12 @@ const processAlerts = async () => {
         } else {
           continue;
         }
-
+        logger.info('Processed report', { id: report.id });
         report.session.alertUser = false;
         try {
+          logger.info('Updating report session', { id: report.id });
           await db(tableName).where({ id: report.id }).update({ session: report.session });
+          logger.info('Report session updated', { id: report.id });
         } catch (dbError) {
           logger.error('DB update error', { id: report.id, error: dbError });
         }
