@@ -39,9 +39,7 @@ const sendNotifyEmail = (template, email, content) => {
   });
 };
 
-
 let isAlertJobRunning = false;
-
 
 const processAlerts = async () => {
   if (isAlertJobRunning) {
@@ -50,10 +48,7 @@ const processAlerts = async () => {
   }
   isAlertJobRunning = true;
   try {
-    logger.info('Starting to fetch reports');
-    const start = Date.now();
     const reports = await db.select(selectableProps).from(tableName);
-    logger.info('Query duration', { duration: Date.now() - start });
     logger.info('Fetched reports', { count: reports.length });
 
     for (const report of reports) {
