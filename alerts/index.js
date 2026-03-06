@@ -80,7 +80,8 @@ const processAlerts = async () => {
             logger.error('Email error', { id: report.id, error: emailError });
           }
         } else if (moment().diff(updated, 'days', true) > DELETION_TIMEOUT) {
-          logger.info('Time remaining for deletion', { id: report.id, days_remaining: DELETION_TIMEOUT - moment().diff(updated, 'days', true) });
+          logger.info('Time remaining for deletion',
+            { id: report.id, days_remaining: DELETION_TIMEOUT - moment().diff(updated, 'days', true) });
           // report is deleted
           logger.info('Deleted old report', { id: report.id });
           try {
@@ -98,7 +99,8 @@ const processAlerts = async () => {
           continue;
         } else if (!report.session.hasOwnProperty('firstAlert') &&
           moment().diff(updated, 'days', true) >= FIRST_ALERT_TIMEOUT) {
-          logger.info('Time remaining for deletion warning', { id: report.id, days_remaining: FIRST_ALERT_TIMEOUT - moment().diff(updated, 'days', true) });
+          logger.info('Time remaining for deletion warning',
+            { id: report.id, days_remaining: FIRST_ALERT_TIMEOUT - moment().diff(updated, 'days', true) });
           // report is coming up for deletion
           logger.info(`${FIRST_ALERT_TIMEOUT} day warning for report`, { id: report.id });
           try {
