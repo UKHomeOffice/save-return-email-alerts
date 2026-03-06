@@ -70,7 +70,7 @@ const processAlerts = async () => {
             logger.error('Email error', { id: report.id, error: emailError });
           }
         } else if (!report.session.hasOwnProperty('alertUser') &&
-          moment().diff(report.updated_at, 'seconds') > NRM_FORM_SESSION_TIMEOUT) {
+          moment().diff(report.updated_at, 'seconds', true) > NRM_FORM_SESSION_TIMEOUT) {
           // check for expired sessions (they wont have an alertUser key but will be over an hour old)
           logger.info('Session expired for user', { id: report.id });
           try {
@@ -78,7 +78,7 @@ const processAlerts = async () => {
           } catch (emailError) {
             logger.error('Email error', { id: report.id, error: emailError });
           }
-        } else if (moment().diff(updated, 'days') > DELETION_TIMEOUT) {
+        } else if (moment().diff(updated, 'days', true) > DELETION_TIMEOUT) {
           // report is deleted
           logger.info('Deleted old report', { id: report.id });
           try {
@@ -95,7 +95,7 @@ const processAlerts = async () => {
           }
           continue;
         } else if (!report.session.hasOwnProperty('firstAlert') &&
-          moment().diff(updated, 'days') >= FIRST_ALERT_TIMEOUT) {
+          moment().diff(updated, 'days', true) >= FIRST_ALERT_TIMEOUT) {
           // report is coming up for deletion
           logger.info(`${FIRST_ALERT_TIMEOUT} day warning for report`, { id: report.id });
           try {
