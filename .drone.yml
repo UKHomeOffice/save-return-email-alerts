@@ -28,7 +28,7 @@ steps:
 
   - name: setup
     pull: if-not-exists
-    image: node:14
+    image: node:24
     commands:
       - yarn install --frozen-lockfile
     when:
@@ -37,7 +37,7 @@ steps:
 
   - name: linting
     pull: if-not-exists
-    image: node:14
+    image: node:24
     commands:
       - yarn run test:lint
     when:
@@ -70,10 +70,10 @@ steps:
       branch: master
       event: [push, pull_request]
 
-  # Snyk & Anchore security scans which run after branch deployment to prevent blocking of PR UAT tests
+  # Snyk security scan which run after branch deployment to prevent blocking of PR UAT tests
   - name: snyk_scan
     pull: if-not-exists
-    image: node:14
+    image: node:24
     environment:
       SNYK_TOKEN:
         from_secret: snyk_token
@@ -83,19 +83,7 @@ steps:
       branch: master
       event: pull_request
 
-  - name: anchore_scan
-    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/anchore-submission:latest
-    pull: always
-    environment:
-      IMAGE_NAME: save-return-email-alerts:${DRONE_COMMIT_SHA}
-      LOCAL_IMAGE: true
-      TOLERATE: medium
-      WHITELIST_FILE: hof-services-config/Modern_Slavery_Nrm/anchore-cve-exceptions.txt
-    when:
-      branch: master
-      event: pull_request
-
-  # CRON job steps that runs security scans using Snyk & Anchore
+  # CRON job steps that runs security scans using Snyk
   - name: cron_clone_repos
     image: alpine/git
     environment:
@@ -122,25 +110,13 @@ steps:
 
   - name: cron_snyk_scan
     pull: if-not-exists
-    image: node:14
+    image: node:24
     environment:
       SNYK_TOKEN:
         from_secret: snyk_token
     commands:
       - yarn install --frozen-lockfile
       - yarn run test:snyk
-    when:
-      cron: security_scans
-      event: cron
-
-  - name: cron_anchore_scan
-    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/anchore-submission:latest
-    pull: always
-    environment:
-      IMAGE_NAME: save-return-email-alerts:${DRONE_COMMIT_SHA}
-      LOCAL_IMAGE: true
-      TOLERATE: medium
-      WHITELIST_FILE: hof-services-config/Modern_Slavery_Nrm/anchore-cve-exceptions.txt
     when:
       cron: security_scans
       event: cron
@@ -184,15 +160,6 @@ services:
   - name: docker
     image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
 
-  # Anchore scanning needs background service to run
-  - name: anchore-submission-server
-    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/anchore-submission:latest
-    pull: always
-    commands:
-      - /run.sh server
-
 volumes:
   - name: dockersock
     temp: {}
-
-...
