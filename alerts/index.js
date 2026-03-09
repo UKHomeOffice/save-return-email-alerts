@@ -55,7 +55,7 @@ const processAlerts = async () => {
       try {
         const email = report.session['user-email'];
         const updated = moment(report.updated_at);
-        logger.info('last updated at', { id: report.id, updated_at: updated.format() });
+        logger.info('Report last updated at', { id: report.id, updated_at: updated.format() });
         const personalisation = {
           reference: report.session.reference,
           deadline: moment(report.updated_at).add(DELETION_TIMEOUT, 'days').format('DD MMMM YYYY'),
@@ -71,7 +71,7 @@ const processAlerts = async () => {
             logger.error('Email error', { id: report.id, error: emailError });
           }
         } else if (!report.session.hasOwnProperty('alertUser') &&
-          moment().diff(report.updated_at, 'seconds', true) > NRM_FORM_SESSION_TIMEOUT) {
+          moment().diff(updated, 'seconds', true) > NRM_FORM_SESSION_TIMEOUT) {
           // check for expired sessions (they wont have an alertUser key but will be over an hour old)
           logger.info('Session expired for user', { id: report.id });
           try {
@@ -80,10 +80,6 @@ const processAlerts = async () => {
             logger.error('Email error', { id: report.id, error: emailError });
           }
         } else if (moment().diff(updated, 'days', true) > DELETION_TIMEOUT) {
-          logger.info('Time past threshold for deletion', {
-            id: report.id,
-            days_past_threshold: moment().diff(updated, 'days', true) - DELETION_TIMEOUT
-          });
           // report is deleted
           logger.info('Deleted old report', { id: report.id });
           try {
@@ -101,10 +97,6 @@ const processAlerts = async () => {
           continue;
         } else if (!report.session.hasOwnProperty('firstAlert') &&
           moment().diff(updated, 'days', true) >= FIRST_ALERT_TIMEOUT) {
-          logger.info('Time past threshold for deletion warning', {
-            id: report.id,
-            days_past_threshold: moment().diff(updated, 'days', true) - FIRST_ALERT_TIMEOUT
-          });
           // report is coming up for deletion
           logger.info(`${FIRST_ALERT_TIMEOUT} day warning for report`, { id: report.id });
           try {
