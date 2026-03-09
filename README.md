@@ -20,9 +20,8 @@ You can set the following to specific how you want your results to look:
 
 (Optional)
 - `SESSION_TTL` - Timeout for application form added to Gov Notify Notifications. Defaults to 3600 seconds (1 hour).
-- `FIRST_ALERT_TIMEOUT` - Time (in days, can be fractional for sub-day windows) since first alert before Notify message sends a 2nd alert informing user of time frame left to access report. For example, `0.5` means 12 hours. Defaults to 21 days. `moment.diff` function accepts floating point numbers
-Code is now 
-- `DELETION_TIMEOUT` - Time (in days, can be fractional for sub-day windows) applicant has left to access the report since the 2nd alert. For example, `0.5` means 12 hours. Defaults to 28 days. `moment.diff` function accepts floating point numbers
+- `FIRST_ALERT_TIMEOUT` - Time (in days, can be fractional for sub-day windows) since first alert before Notify message sends a 2nd alert informing user of time frame left to access report. For example, `0.5` means 12 hours. Defaults to 21 days. `moment.diff` function accepts floating point numbers.
+- `DELETION_TIMEOUT` - Time (in days, can be fractional for sub-day windows) applicant has left to access the report since the 2nd alert. For example, `0.5` means 12 hours. Defaults to 28 days. `moment.diff` function accepts floating point numbers.
 
 ## Local Setup
 The migrations and seeds folders are used by knex to setup a local DB with dummy information for testing the service. These are not used in production where it is assumed a separate DB is setup for knex to connect to that is already setup.
