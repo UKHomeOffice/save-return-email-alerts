@@ -98,7 +98,8 @@ const processAlerts = async () => {
           try {
             await sendNotifyEmail(SOON_TO_BE_DELETED_TEMPLATE, email, personalisation);
           } catch (emailError) {
-            logger.error('Email error - sending soon to be deleted warning email', { id: report.id, error: emailError });
+            logger.error('Email error - sending soon to be deleted warning email',
+              { id: report.id, error: emailError });
           }
           report.session.firstAlert = true;
         } else {
@@ -146,3 +147,8 @@ process.on('SIGINT', async () => {
   await db.destroy();
   process.exit(0);
 });
+
+module.exports = {
+  processAlerts,
+  sendNotifyEmail
+};
