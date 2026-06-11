@@ -49,13 +49,11 @@ const processAlerts = async () => {
   isAlertJobRunning = true;
   try {
     const reports = await db.select(selectableProps).from(tableName);
-    logger.info('Fetched reports', { count: reports.length });
 
     for (const report of reports) {
       try {
         const email = report.session['user-email'];
         const updated = moment(report.updated_at);
-        logger.info('Report last updated at', { id: report.id, updated_at: updated.format() });
         const personalisation = {
           reference: report.session.reference,
           deadline: moment(report.updated_at).add(DELETION_TIMEOUT, 'days').format('DD MMMM YYYY'),
@@ -64,45 +62,44 @@ const processAlerts = async () => {
 
         // alert about newly saved case
         if (report.session.alertUser === true) {
-          logger.info('New save and return', { id: report.id });
           try {
             await sendNotifyEmail(SAVE_REPORT_TEMPLATE, email, personalisation);
           } catch (emailError) {
-            logger.error('Email error', { id: report.id, error: emailError });
+            logger.error('Email error - sending new save and return email', { id: report.id, error: emailError });
           }
         } else if (!report.session.hasOwnProperty('alertUser') &&
           moment().diff(updated, 'seconds', true) > NRM_FORM_SESSION_TIMEOUT) {
           // check for expired sessions (they wont have an alertUser key but will be over an hour old)
-          logger.info('Session expired for user', { id: report.id });
           try {
             await sendNotifyEmail(TIMEOUT_TEMPLATE, email, personalisation);
           } catch (emailError) {
-            logger.error('Email error', { id: report.id, error: emailError });
+            logger.error('Email error - sending session timeout email', { id: report.id, error: emailError });
           }
         } else if (moment().diff(updated, 'days', true) > DELETION_TIMEOUT) {
           // report is deleted
-          logger.info('Deleted old report', { id: report.id });
           try {
             await sendNotifyEmail(DELETE_TEMPLATE, email, personalisation);
           } catch (emailError) {
-            logger.error('Email error', { id: report.id, error: emailError });
+            logger.error('Email error - sending report deleted email', { id: report.id, error: emailError });
           }
           try {
-            logger.info('Deleting report from DB', { id: report.id });
             await db(tableName).where({ id: report.id }).del();
-            logger.info('Report deleted from DB', { id: report.id });
           } catch (dbError) {
-            logger.error('DB delete error', { id: report.id, error: dbError });
+            logger.error('Database error - deleting report record', {
+              id: report.id,
+              operation: 'delete',
+              error: dbError
+            });
           }
           continue;
         } else if (!report.session.hasOwnProperty('firstAlert') &&
           moment().diff(updated, 'days', true) >= FIRST_ALERT_TIMEOUT) {
           // report is coming up for deletion
-          logger.info(`${FIRST_ALERT_TIMEOUT} day warning for report`, { id: report.id });
           try {
             await sendNotifyEmail(SOON_TO_BE_DELETED_TEMPLATE, email, personalisation);
           } catch (emailError) {
-            logger.error('Email error', { id: report.id, error: emailError });
+            logger.error('Email error - sending soon to be deleted warning email',
+              { id: report.id, error: emailError });
           }
           report.session.firstAlert = true;
         } else {
@@ -115,7 +112,11 @@ const processAlerts = async () => {
           await db(tableName).where({ id: report.id }).update({ session: report.session });
           logger.info('Report session updated', { id: report.id });
         } catch (dbError) {
-          logger.error('DB update error', { id: report.id, error: dbError });
+          logger.error('Database error - updating report session', {
+            id: report.id,
+            operation: 'update',
+            error: dbError
+          });
         }
       } catch (innerError) {
         logger.error('Error processing report', { id: report.id, error: innerError });
@@ -146,3 +147,8 @@ process.on('SIGINT', async () => {
   await db.destroy();
   process.exit(0);
 });
+
+module.exports = {
+  processAlerts,
+  sendNotifyEmail
+};

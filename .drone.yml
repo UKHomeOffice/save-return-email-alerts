@@ -44,6 +44,15 @@ steps:
       branch: master
       event: [push, pull_request]
 
+  - name: unit_tests
+    pull: if-not-exists
+    image: node:24
+    commands:
+      - yarn run test:unit
+    when:
+      branch: master
+      event: [push, pull_request]
+
   - name: build_image
     image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
     commands:
