@@ -12,58 +12,173 @@ trigger:
   branch:
     - master
 
+include_default_and_feature_branches: &include_default_and_feature_branches
+  include:
+    - master
+    - feature/*    
+    - deps-*
+
+node_image_name: &node_image_name quay.io/ukhomeofficedigital/hof-nodejs:24.21.0-alpine3.24-v9@sha256:baf6fee695730fcede4a6dd89390b1756ce5b26ce45b39cca3c7cdc63e91a443
+
+node_image: &node_image
+  pull: if-not-exists
+  image: *node_image_name
+
+linting: &linting
+  <<: *node_image
+  commands:
+    - yarn run test:lint
+
+unit_tests: &unit_tests
+  <<: *node_image
+  environment:
+  commands:
+    - yarn run test:unit
+
+sonar_scanner: &sonar_scanner
+  pull: always
+  image: quay.io/ukhomeofficedigital/sonar-scanner:latest
+  commands:
+    - sonar-scanner -Dproject.settings=./sonar-project.properties -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300
+
+github_app_token_step: &github_app_token_step
+  pull: if-not-exists
+  image: alpine:3.21
+  volumes:
+    - name: dockersock
+      path: /root/.dockersock
+  commands:
+    - apk add --no-cache bash curl jq openssl
+    - test -n "$GITHUB_APP_ID" || (echo "Missing GITHUB_APP_ID secret." && exit 1)
+    - test -n "$GITHUB_APP_PRIVATE_KEY" || (echo "Missing GITHUB_APP_PRIVATE_KEY secret." && exit 1)
+    - test -n "$GITHUB_APP_INSTALLATION_ID" || (echo "Missing GITHUB_APP_INSTALLATION_ID secret." && exit 1)
+    - test -n "$OUTPUT_TOKEN_FILE" || (echo "Missing OUTPUT_TOKEN_FILE." && exit 1)
+    - bash bin/generate_github_app_token.sh
+
+github_app_token_secrets_ukho: &github_app_token_secrets_ukho
+  GITHUB_APP_ID:
+    from_secret: hof_ukho_gh_app_id
+  GITHUB_APP_PRIVATE_KEY:
+    from_secret: hof_ukho_gh_app_pk
+  GITHUB_APP_INSTALLATION_ID:
+    from_secret: hof_ukho_gh_app_install_id
+
+github_app_token_secrets_hof: &github_app_token_secrets_hof
+  GITHUB_APP_ID:
+    from_secret: HOF_GH_APP_ID
+  GITHUB_APP_PRIVATE_KEY:
+    from_secret: HOF_GH_APP_PK
+  GITHUB_APP_INSTALLATION_ID:
+    from_secret: HOF_GH_APP_INSTALL_ID
+
+clone_repos_step: &clone_repos_step
+  image: alpine/git
+  volumes:
+    - name: dockersock
+      path: /root/.dockersock
+  commands:
+    - test -s "$CLONE_TOKEN_FILE" || (echo "$CLONE_TOKEN_MISSING_MESSAGE" && exit 1)
+    - export GITHUB_TOKEN="$(cat "$CLONE_TOKEN_FILE")"
+    - git clone https://x-access-token:$${GITHUB_TOKEN}@github.com/UKHomeOfficeForms/hof-services-config.git
+    - if [ "${CLONE_REPOS_PRUNE:-false}" = "true" ]; then find hof-services-config/* | grep -v $HOF_CONFIG | grep -v 'infrastructure' | xargs rm -rf; fi
+    - rm -f "$CLONE_TOKEN_FILE"
+
+
 steps:
-  - name: clone_repos
-    image: alpine/git
+  - name: generate_github_app_token_for_clone
+    <<: *github_app_token_step
     environment:
-      DRONE_GIT_USERNAME:
-        from_secret: drone_git_username
-      DRONE_GIT_TOKEN:
-        from_secret: drone_git_token
-    commands:
-      - git clone https://$${DRONE_GIT_USERNAME}:$${DRONE_GIT_TOKEN}@github.com/UKHomeOfficeForms/hof-services-config.git
+      <<: *github_app_token_secrets_hof
+      OUTPUT_TOKEN_FILE: /root/.dockersock/github_app_token_for_clone.txt
     when:
-      branch: master
+      branch:
+        <<: *include_default_and_feature_branches
       event: [push, pull_request]
 
+  - name: clone_repos
+    <<: *clone_repos_step
+    environment:
+      CLONE_TOKEN_FILE: /root/.dockersock/github_app_token_for_clone.txt
+      CLONE_TOKEN_MISSING_MESSAGE: Missing GitHub App token file for clone step.
+      CLONE_REPOS_PRUNE: "true"
+    when:
+      branch:
+        <<: *include_default_and_feature_branches
+      event: [push, pull_request]
+    depends_on:
+      - generate_github_app_token_for_clone
+
+  # Trivy Security Scannner for scanning OS related vulnerabilities in Base image of Dockerfile
+  - name: scan_base_image_os
+    pull: always
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/trivy/client:latest
+    resources:
+      limits:
+        cpu: 1000
+        memory: 1024Mi
+    environment:
+      IMAGE_NAME: *node_image_name
+      SERVICE_URL: https://acp-trivy-helm.acp-trivy.svc.cluster.local:443
+      SEVERITY: HIGH,CRITICAL --pkg-types os,library --dependency-tree
+      FAIL_ON_DETECTION: true
+      IGNORE_UNFIXED: false
+      ALLOW_CVE_LIST_FILE: hof-services-config/infrastructure/trivy/.trivyignore.yaml
+    volumes:
+      - name: dockersock
+        path: /root/.dockersock
+    when:
+      event: [push, pull_request]
+    depends_on:
+      - clone_repos
+
   - name: setup
-    pull: if-not-exists
-    image: node:24
+    <<: *node_image
+    environment:
     commands:
       - yarn install --frozen-lockfile
+      - yarn run postinstall
     when:
-      branch: master
+      branch:
+        <<: *include_default_and_feature_branches
       event: [push, pull_request]
 
   - name: linting
-    pull: if-not-exists
-    image: node:24
-    commands:
-      - yarn run test:lint
+    <<: *linting
     when:
-      branch: master
+      branch:
+        <<: *include_default_and_feature_branches
       event: [push, pull_request]
+    depends_on:
+      - setup
 
   - name: unit_tests
-    pull: if-not-exists
-    image: node:24
+    <<: *unit_tests
     commands:
       - yarn run test:unit
     when:
-      branch: master
+      branch:
+        <<: *include_default_and_feature_branches
       event: [push, pull_request]
+    depends_on:
+      - setup
 
-  - name: build_image
+  - name: build_image_for_trivy
+    pull: if-not-exists
     image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
     commands:
-      - n=0; while [ "$n" -lt 60 ] && [ ! docker stats --no-stream ]; do n=$(( n + 1 )); sleep 1; done
+      # wait for docker service to be up before running docker build
+      - /usr/local/bin/wait
       - docker build --no-cache -t $${IMAGE_REPO}:$${DRONE_COMMIT_SHA} .
     volumes:
       - name: dockersock
         path: /var/run
     when:
-      branch: master
+      branch:
+        <<: *include_default_and_feature_branches
       event: [push, pull_request]
+    depends_on:
+      - linting
+      - sonar_scanner
 
   - name: image_to_quay
     pull: if-not-exists
@@ -79,36 +194,61 @@ steps:
       branch: master
       event: [push, pull_request]
 
-  # Snyk security scan which run after branch deployment to prevent blocking of PR UAT tests
-  - name: snyk_scan
-    pull: if-not-exists
-    image: node:24
+  # Trivy Security Scannner for scanning nodejs packages in Yarn
+  - name: scan_node_packages
+    pull: always
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/trivy/client:latest
+    resources:
+      limits:
+        cpu: 1000
+        memory: 1024Mi
     environment:
-      SNYK_TOKEN:
-        from_secret: snyk_token
-    commands:
-      - yarn run test:snyk
+      IMAGE_NAME: save-return-email-alerts:${DRONE_COMMIT_SHA}
+      SERVICE_URL: https://acp-trivy-helm.acp-trivy.svc.cluster.local:443
+      SEVERITY: MEDIUM,HIGH,CRITICAL --pkg-types os,library --dependency-tree
+      FAIL_ON_DETECTION: true
+      IGNORE_UNFIXED: false
+      ALLOW_CVE_LIST_FILE: hof-services-config/infrastructure/trivy/.trivyignore.yaml
+    volumes:
+      - name: dockersock
+        path: /root/.dockersock
     when:
       branch: master
-      event: pull_request
+      event: [push, pull_request]
+    depends_on:
+      - build_image_for_trivy
 
-  # CRON job steps that runs security scans using Snyk
+  - name: generate_github_app_token_for_clone_cron
+    <<: *github_app_token_step
+    environment:
+      <<: *github_app_token_secrets_hof
+      OUTPUT_TOKEN_FILE: /root/.dockersock/github_app_token_for_clone_cron.txt
+    when:
+      cron: security_scans
+      event: cron
+
+  # CRON job steps that runs security scans using Trivy
   - name: cron_clone_repos
+    pull: if-not-exists
     image: alpine/git
     environment:
       DRONE_GIT_USERNAME:
-        from_secret: drone_git_username
+        from_secret: DRONE_GIT_USERNAME
       DRONE_GIT_TOKEN:
-        from_secret: drone_git_token
+        from_secret: DRONE_GIT_TOKEN
     commands:
       - git clone https://$${DRONE_GIT_USERNAME}:$${DRONE_GIT_TOKEN}@github.com/UKHomeOfficeForms/hof-services-config.git
+      - find hof-services-config/* | grep -v $HOF_CONFIG | grep -v 'infrastructure' | xargs rm -rf
     when:
       cron: security_scans
       event: cron
 
   - name: cron_build_image
+    pull: if-not-exists
     image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
     commands:
+      # wait for docker service to be up before running docker build
+      - /usr/local/bin/wait
       - docker build --no-cache -t $${IMAGE_REPO}:$${DRONE_COMMIT_SHA} .
     volumes:
       - name: dockersock
@@ -116,19 +256,42 @@ steps:
     when:
       cron: security_scans
       event: cron
+    depends_on:
+      - cron_clone_repos
 
-  - name: cron_snyk_scan
-    pull: if-not-exists
-    image: node:24
+  - name: cron_trivy_scan_node_packages
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/trivy/client:latest
+    pull: always
     environment:
-      SNYK_TOKEN:
-        from_secret: snyk_token
-    commands:
-      - yarn install --frozen-lockfile
-      - yarn run test:snyk
+        IMAGE_NAME: save-return-email-alerts:${DRONE_COMMIT_SHA}
+        SERVICE_URL: https://acp-trivy-helm.acp-trivy.svc.cluster.local:443
+        SEVERITY: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL --pkg-types os,library --dependency-tree
+        FAIL_ON_DETECTION: true
+        IGNORE_UNFIXED: false
+        ALLOW_CVE_LIST_FILE: hof-services-config/infrastructure/trivy/.trivyignore.yaml
     when:
       cron: security_scans
       event: cron
+      status:
+        - success
+        - failure
+    depends_on:
+      - cron_build_image
+
+  - name: cron_trivy_scan_image_os
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/trivy/client:latest
+    pull: always
+    environment:
+        IMAGE_NAME: *node_image_name
+        SEVERITY: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL --pkg-types os,library --dependency-tree
+        FAIL_ON_DETECTION: true
+        IGNORE_UNFIXED: false
+        ALLOW_CVE_LIST_FILE: hof-services-config/infrastructure/trivy/.trivyignore.yaml
+    when:
+      cron: security_scans
+      event: cron
+    depends_on:
+      - cron_clone_repos
 
   # Slack notification upon a CRON job fail
   - name: cron_notify_slack_tear_down_pr_envs
