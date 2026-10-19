@@ -136,7 +136,6 @@ steps:
     environment:
     commands:
       - yarn install --frozen-lockfile
-      - yarn run postinstall
     when:
       branch:
         <<: *include_default_and_feature_branches
@@ -203,6 +202,8 @@ steps:
     when:
       branch: master
       event: [push, pull_request]
+    depends_on:
+      - build_image_for_trivy
 
   # Trivy Security Scannner for scanning nodejs packages in Yarn
   - name: scan_node_packages
