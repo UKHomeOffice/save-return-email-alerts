@@ -9,8 +9,7 @@
   "scripts": {
     "alerts": "node ./alerts",
     "test:unit": "jest",
-    "test:lint": "eslint . --config ./node_modules/eslint-config-hof/default.js",
-    "test:snyk": "snyk config set api=SNYK_TOKEN && snyk test"
+    "test:lint": "eslint . --config ./node_modules/eslint-config-hof/default.js"
   },
   "author": "Sulthan Ahmed & Alex Swann",
   "license": "MIT",

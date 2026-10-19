@@ -162,6 +162,16 @@ steps:
     depends_on:
       - setup
 
+  - name: sonar_scanner
+    <<: *sonar_scanner
+    when:
+      branch:
+        <<: *include_default_and_feature_branches
+      event: [push, pull_request]
+    depends_on:
+      - linting
+      - unit_tests
+
   - name: build_image_for_trivy
     pull: if-not-exists
     image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
