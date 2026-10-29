@@ -17,7 +17,7 @@
     "knex": "^3.2.10",
     "moment": "^2.31.0",
     "ms-schema": "^1.6.2",
-    "node-json-logger": "0.2.1",
+    "node-json-logger": "0.3.0",
     "notifications-node-client": "^8.5.0"
   },
   "devDependencies": {
