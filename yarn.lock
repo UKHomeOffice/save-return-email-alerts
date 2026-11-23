@@ -3474,10 +3474,10 @@ node-int64@^0.4.0:
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
   integrity sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==
 
-node-json-logger@0.2.1:
-  version "0.2.1"
-  resolved "https://registry.yarnpkg.com/node-json-logger/-/node-json-logger-0.2.1.tgz#afe87d79ca8bbc545e07e8e08713ec03c5ae6192"
-  integrity sha512-XY8zqO5f+RX9FTRiLIWQA8tiGEb2Ltudbks2kBno0HTR+Ikb3Z7LinjQprzBzQEcHiZaclqK5ahpgyVKeXHecQ==
+node-json-logger@0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/node-json-logger/-/node-json-logger-0.3.0.tgz#c71d506efddb10866f67ac7556e8db3c3207904e"
+  integrity sha512-a35QAhKaal+G4zyFeP6FC2jObF9V+fxNRHeNJVPCFfxgcaL5S4GoOts1yXx0JMfvnX4Lrj2kh9snE8032z4lXw==
   dependencies:
     moment-timezone "^0.5.43"
 
